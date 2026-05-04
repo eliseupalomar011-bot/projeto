@@ -4,6 +4,25 @@ from middlewares.auth import require_auth, require_admin
 
 admin_bp = Blueprint('admin', __name__)
 
+# --- STATS ---
+
+@admin_bp.route('/stats', methods=['GET'])
+@require_auth
+@require_admin
+def get_stats():
+    supabase = get_db()
+    
+    # Busca contagens básicas
+    users = supabase.table('users').select('id').execute()
+    freights = supabase.table('freights').select('id').execute()
+    active = supabase.table('freights').select('id').eq('status', 'ativo').execute()
+    
+    return jsonify({
+        'total_users': users.count,
+        'total_freights': freights.count,
+        'active_freights': active.count
+    })
+
 # --- USERS MANAGEMENT ---
 
 @admin_bp.route('/users', methods=['GET'])
@@ -12,7 +31,6 @@ admin_bp = Blueprint('admin', __name__)
 def get_users():
     supabase = get_db()
     res = supabase.table('users').select('*').order('created_at', desc=True).execute()
-    # O painel espera um objeto com a chave "users"
     return jsonify({'users': res.data})
 
 @admin_bp.route('/users/<int:user_id>/truck-lock', methods=['POST'])
@@ -21,19 +39,16 @@ def get_users():
 def toggle_truck_lock(user_id):
     data = request.json
     locked = 1 if data.get('locked') else 0
-    
     supabase = get_db()
-    res = supabase.table('users').eq('id', user_id).update({'truck_locked': locked})
+    supabase.table('users').eq('id', user_id).update({'truck_locked': locked})
     
-    # Log da atividade
     supabase.table('activity_logs').insert({
         'actor_user_id': request.user['id'],
         'target_user_id': user_id,
         'type': 'SECURITY',
         'message': f"Caminhão {'bloqueado' if locked else 'liberado'} pelo administrador."
     })
-    
-    return jsonify({'message': 'Status do caminhão atualizado.', 'locked': bool(locked)})
+    return jsonify({'message': 'Status atualizado.', 'locked': bool(locked)})
 
 # --- FREIGHTS MANAGEMENT ---
 
@@ -42,11 +57,7 @@ def toggle_truck_lock(user_id):
 @require_admin
 def get_all_freights():
     supabase = get_db()
-    # O painel espera o nome do motorista também
     res = supabase.table('freights').select('*').order('created_at', desc=True).execute()
-    
-    # Adicionando nomes dos usuários (como o motor REST é simples, fazemos um map se necessário)
-    # Por agora, retornamos os dados crus. O ideal seria o join, mas vamos manter simples.
     return jsonify({'freights': res.data})
 
 @admin_bp.route('/freights', methods=['POST'])
@@ -54,14 +65,14 @@ def get_all_freights():
 @require_admin
 def create_freight():
     data = request.json
-    user_id = data.get('userId') # O painel envia como userId
+    user_id = data.get('userId')
     origin = data.get('origin')
     destination = data.get('destination')
     cargo = data.get('cargo')
     value = data.get('value', 0)
     
     if not all([user_id, origin, destination, cargo]):
-        return jsonify({'error': 'Dados do frete incompletos.'}), 400
+        return jsonify({'error': 'Dados incompletos.'}), 400
         
     supabase = get_db()
     res = supabase.table('freights').insert({
@@ -73,14 +84,12 @@ def create_freight():
         'status': 'criado'
     })
     
-    # Log
     supabase.table('activity_logs').insert({
         'actor_user_id': request.user['id'],
         'target_user_id': user_id,
         'type': 'FREIGHT',
         'message': f"Novo frete enviado: {origin} -> {destination}"
     })
-    
     return jsonify(res.data[0] if res.data else {}), 201
 
 @admin_bp.route('/freights/<int:id>/cancel', methods=['POST'])
@@ -88,7 +97,7 @@ def create_freight():
 @require_admin
 def cancel_freight(id):
     supabase = get_db()
-    res = supabase.table('freights').eq('id', id).update({'status': 'cancelado'})
+    supabase.table('freights').eq('id', id).update({'status': 'cancelado'})
     return jsonify({'message': 'Frete cancelado.'})
 
 # --- LOGS ---
