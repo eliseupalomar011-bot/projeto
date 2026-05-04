@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ETS2 Fleet Manager Pro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="dark-theme">
+  <!-- LOGIN OVERLAY -->
+  <div id="loginView" class="overlay-view">
+    <div class="login-card">
+      <div class="logo-container">
+        <div class="logo-circle">
+          <i data-lucide="truck"></i>
+        </div>
+        <h1>Fleet Manager<span>Pro</span></h1>
+      </div>
+      <p class="subtitle">Acesse o painel administrativo</p>
+      <form id="loginForm">
+        <div class="input-group">
+          <label>Usuário</label>
+          <input type="text" id="username" placeholder="Seu usuário" required>
+        </div>
+        <div class="input-group">
+          <label>Senha</label>
+          <input type="password" id="password" placeholder="••••••••" required>
+        </div>
+        <button type="submit" class="btn-primary">Entrar no Painel</button>
+      </form>
+      <div id="loginError" class="error-msg hidden"></div>
+    </div>
+  </div>
+
+  <!-- MAIN APP VIEW -->
+  <div id="appView" class="app-container hidden">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo-mini">
+          <i data-lucide="shield-check"></i>
+        </div>
+        <div class="sidebar-brand">
+          <strong>Fleet Pro</strong>
+          <span>Admin Console</span>
+        </div>
+      </div>
+      
+      <nav class="sidebar-nav">
+        <button class="nav-item active" data-view="dashboard">
+          <i data-lucide="layout-dashboard"></i> Dashboard
+        </button>
+        <button class="nav-item" data-view="drivers">
+          <i data-lucide="users"></i> Motoristas
+        </button>
+        <button class="nav-item" data-view="freights">
+          <i data-lucide="box"></i> Fretes & Cargas
+        </button>
+        <button class="nav-item" data-view="logs">
+          <i data-lucide="file-text"></i> Logs de Atividade
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-profile">
+          <div class="avatar" id="userAvatar">A</div>
+          <div class="user-info">
+            <strong id="adminName">Administrador</strong>
+            <span id="adminUsername">@admin</span>
+          </div>
+        </div>
+        <button id="logoutBtn" class="btn-icon-text">
+          <i data-lucide="log-out"></i> Sair
+        </button>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="content">
+      <header class="content-header">
+        <h2 id="viewTitle">Dashboard</h2>
+        <div class="header-actions">
+          <div class="connection-status">
+            <span class="status-dot online"></span>
+            Servidor Online
+          </div>
+          <button class="btn-secondary" id="refreshBtn">
+            <i data-lucide="refresh-cw"></i> Atualizar
+          </button>
+        </div>
+      </header>
+
+      <!-- VIEW: DASHBOARD -->
+      <section id="view-dashboard" class="dashboard-view active">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon blue"><i data-lucide="users"></i></div>
+            <div class="stat-content">
+              <span class="stat-label">Motoristas</span>
+              <strong class="stat-value" id="statDrivers">0</strong>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon green"><i data-lucide="truck"></i></div>
+            <div class="stat-content">
+              <span class="stat-label">Fretes Ativos</span>
+              <strong class="stat-value" id="statActive">0</strong>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon purple"><i data-lucide="check-circle"></i></div>
+            <div class="stat-content">
+              <span class="stat-label">Entregues</span>
+              <strong class="stat-value" id="statDelivered">0</strong>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon orange"><i data-lucide="alert-triangle"></i></div>
+            <div class="stat-content">
+              <span class="stat-label">Falhas</span>
+              <strong class="stat-value" id="statFailed">0</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="dashboard-charts">
+          <div class="chart-card">
+            <h3>Atividade Recente</h3>
+            <div class="chart-placeholder">
+              <div class="bar" style="height: 40%"></div>
+              <div class="bar" style="height: 70%"></div>
+              <div class="bar" style="height: 55%"></div>
+              <div class="bar" style="height: 90%"></div>
+              <div class="bar" style="height: 35%"></div>
+              <div class="bar" style="height: 60%"></div>
+              <div class="bar" style="height: 75%"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW: DRIVERS -->
+      <section id="view-drivers" class="drivers-view hidden">
+        <div class="action-bar">
+          <button class="btn-primary" id="openNewUserModal">
+            <i data-lucide="user-plus"></i> Novo Motorista
+          </button>
+        </div>
+        <div class="table-container">
+          <table id="driversTable">
+            <thead>
+              <tr>
+                <th>Motorista</th>
+                <th>Usuário</th>
+                <th>Saldo</th>
+                <th>Status Caminhão</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="driversList"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- VIEW: FREIGHTS -->
+      <section id="view-freights" class="freights-view hidden">
+        <div class="freight-controls">
+          <div class="card create-freight">
+            <h3>Gerar Novo Frete</h3>
+            <form id="freightForm" class="horizontal-form">
+              <select id="targetUserId" required></select>
+              <input type="text" id="origin" placeholder="Origem" required>
+              <input type="text" id="destination" placeholder="Destino" required>
+              <input type="text" id="cargo" placeholder="Carga" required>
+              <input type="number" id="value" placeholder="Valor R$" required>
+              <button type="submit" class="btn-primary">Enviar Frete</button>
+            </form>
+          </div>
+        </div>
+        <div class="table-container mt-4">
+          <table id="freightsTable">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Trajeto</th>
+                <th>Carga</th>
+                <th>Motorista</th>
+                <th>Status</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="freightsList"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- VIEW: LOGS -->
+      <section id="view-logs" class="logs-view hidden">
+        <div class="logs-container" id="logsList"></div>
+      </section>
+    </main>
+  </div>
+
+  <!-- MODAL: NEW USER -->
+  <div id="userModal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="userModalTitle">Novo Motorista</h3>
+        <button class="btn-close" id="closeUserModal">&times;</button>
+      </div>
+      <form id="userForm">
+        <div class="form-grid">
+          <div class="input-group">
+            <label>Nome Completo</label>
+            <input type="text" id="newName" required>
+          </div>
+          <div class="input-group">
+            <label>Usuário (@)</label>
+            <input type="text" id="newUsername" required>
+          </div>
+          <div class="input-group">
+            <label>Senha Provisória</label>
+            <input type="password" id="newPassword" required>
+          </div>
+          <div class="input-group">
+            <label>Empresa</label>
+            <input type="text" id="newCompany">
+          </div>
+          <div class="input-group">
+            <label>Saldo Inicial (R$)</label>
+            <input type="number" id="newBalance" value="0">
+          </div>
+          <div class="input-group">
+            <label>Nível de Acesso</label>
+            <select id="newRole">
+              <option value="user">Motorista</option>
+              <option value="admin">Administrador</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" id="cancelUserModal">Cancelar</button>
+          <button type="submit" class="btn-primary">Criar Cadastro</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="app.js"></script>
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+</html>

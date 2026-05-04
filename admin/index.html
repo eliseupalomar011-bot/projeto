@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ETS2 Fretes Admin</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark">E2</span>
+        <div>
+          <h1>Controle de Frete do ETS2</h1>
+          <span id="connection">offline</span>
+        </div>
+      </div>
+      <div class="top-actions">
+        <a id="driverPreviewLink" class="ghost-link hidden" href="./motorista.html" target="_blank">Ver painel do motorista</a>
+        <button id="logoutBtn" class="ghost hidden">Sair</button>
+      </div>
+    </header>
+
+    <main>
+      <section id="loginView" class="panel narrow">
+        <div class="login-brand">
+          <span class="mark">ETS2</span>
+          <div>
+            <h2>Painel administrativo</h2>
+            <p>Gerencie motoristas, fretes e entregas em tempo real.</p>
+          </div>
+        </div>
+        <form id="loginForm">
+          <label>Usuario<input id="username" required value="palomareliseuaz163" autocomplete="username" /></label>
+          <label>Senha<input id="password" type="password" required value="mm06042012" /></label>
+          <button type="submit">Entrar</button>
+        </form>
+      </section>
+
+      <section id="appView" class="hidden layout">
+        <section class="hero">
+          <div>
+            <span class="eyebrow">Operacao em tempo real</span>
+            <h2>Central de fretes ETS2</h2>
+            <p>Crie motoristas, envie fretes e acompanhe validacoes de telemetria em uma unica tela.</p>
+          </div>
+          <div class="hero-actions">
+            <span class="live-dot"></span>
+            <span>Socket.IO (Polling)</span>
+          </div>
+        </section>
+
+        <section class="overview">
+          <article class="stat accent-green"><span>Motoristas</span><strong id="statUsers">0</strong></article>
+          <article class="stat accent-yellow"><span>Fretes ativos</span><strong id="statActive">0</strong></article>
+          <article class="stat accent-blue"><span>Entregues</span><strong id="statDelivered">0</strong></article>
+          <article class="stat accent-red"><span>Falhas</span><strong id="statFailed">0</strong></article>
+        </section>
+
+        <section class="content-grid">
+          <aside class="stack">
+            <section class="panel">
+              <h2>Novo motorista</h2>
+              <form id="userForm" class="grid">
+                <label>Nome<input id="newName" required placeholder="Nome do jogador" /></label>
+                <label>Usuario<input id="newUsername" required placeholder="ex: joao_silva" /></label>
+                <label>Senha<input id="newPassword" type="text" minlength="6" required placeholder="minimo 6 caracteres" /></label>
+                <label>Empresa VTC<input id="newCompany" placeholder="opcional" /></label>
+                <label>Saldo inicial<input id="newBalance" type="number" value="0" /></label>
+                <label>Perfil<select id="newRole"><option value="user">Motorista</option><option value="admin">Admin</option></select></label>
+                <button type="submit">Criar usuario</button>
+              </form>
+            </section>
+
+            <section class="panel">
+              <h2>Criar frete</h2>
+              <form id="freightForm" class="grid">
+                <label>Motorista<select id="userId" required></select></label>
+                <label>Valor<input id="value" type="number" min="1" required value="2500" /></label>
+                <label>Origem<input id="origin" required placeholder="Sao Paulo" /></label>
+                <label>Destino<input id="destination" required placeholder="Rio de Janeiro" /></label>
+                <label>Carga<input id="cargo" required placeholder="Eletronicos" /></label>
+                <label>Latitude destino<input id="destinationLat" type="number" step="any" placeholder="opcional" /></label>
+                <label>Longitude destino<input id="destinationLng" type="number" step="any" placeholder="opcional" /></label>
+                <button type="submit">Enviar frete</button>
+              </form>
+            </section>
+          </aside>
+
+          <section class="panel">
+            <div class="section-title">
+              <div>
+                <h2>Fretes</h2>
+                <p>Fila operacional dos fretes criados para os motoristas.</p>
+              </div>
+              <span id="freightCount">0 registros</span>
+            </div>
+            <div id="freights" class="list"></div>
+          </section>
+        </section>
+
+        <section class="bottom-grid">
+          <section class="panel">
+            <h2>Usuarios</h2>
+            <div id="users" class="list compact"></div>
+          </section>
+
+          <section class="panel">
+            <h2>Atividade</h2>
+            <div id="logs" class="list compact"></div>
+          </section>
+        </section>
+      </section>
+    </main>
+
+    <div id="toast"></div>
+    <div id="loginOverlay" class="login-overlay hidden">
+      <div class="login-loader">
+        <span class="loader-mark">ETS2</span>
+        <div>
+          <strong>Entrando no painel</strong>
+          <p>Sincronizando motoristas, fretes e telemetria.</p>
+        </div>
+        <div class="progress-track"><span></span></div>
+      </div>
+    </div>
+    <div id="editModal" class="modal hidden">
+      <form id="editUserForm" class="modal-card">
+        <div class="section-title">
+          <div>
+            <h2>Editar usuario</h2>
+            <p>Atualize os dados de acesso e perfil do motorista.</p>
+          </div>
+          <button id="closeEditModal" type="button" class="ghost icon-button">X</button>
+        </div>
+        <input id="editUserId" type="hidden" />
+        <div class="grid">
+          <label>Nome<input id="editName" required /></label>
+          <label>Usuario<input id="editUsername" required /></label>
+          <label>Nova senha<input id="editPassword" type="text" placeholder="deixe vazio para manter" /></label>
+          <label>Empresa VTC<input id="editCompany" /></label>
+          <label>Saldo<input id="editBalance" type="number" /></label>
+          <label>Perfil<select id="editRole"><option value="user">Motorista</option><option value="admin">Admin</option></select></label>
+          <button type="submit">Salvar alteracoes</button>
+        </div>
+      </form>
+    </div>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>

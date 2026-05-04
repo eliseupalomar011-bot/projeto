@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ETS2 Freight Client</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header>
+      <div>
+        <h1>ETS2 Freight Client</h1>
+        <span id="serverState">desconectado</span>
+      </div>
+      <button id="logoutBtn" class="ghost hidden">Sair</button>
+    </header>
+
+    <main>
+      <section id="loginView" class="panel login">
+        <h2>Entrar</h2>
+        <form id="settingsForm" class="settings">
+          <label>Servidor<input id="serverUrl" required value="http://localhost:5000" /></label>
+        </form>
+        <form id="loginForm">
+          <label>Usuario<input id="username" required autocomplete="username" /></label>
+          <label>Senha<input id="password" type="password" required /></label>
+          <button type="submit">Entrar</button>
+        </form>
+        <p class="meta">Seu acesso e criado pelo administrador da empresa.</p>
+      </section>
+
+      <section id="appView" class="hidden workspace">
+        <aside class="panel">
+          <h2>Motorista</h2>
+          <div id="profile" class="profile"></div>
+          <div class="telemetry">
+            <div><span>Telemetria</span><strong id="telemetryState">aguardando</strong></div>
+            <div><span>Velocidade</span><strong id="speed">-- km/h</strong></div>
+            <div><span>Distancia</span><strong id="distance">-- m</strong></div>
+            <div><span>Trailer</span><strong id="trailer">--</strong></div>
+          </div>
+        </aside>
+        <section class="panel">
+          <h2>Meus fretes</h2>
+          <div id="freights" class="freights"></div>
+        </section>
+      </section>
+    </main>
+
+    <div id="toast"></div>
+    <script src="../../node_modules/socket.io-client/dist/socket.io.min.js"></script>
+    <script src="./renderer.js"></script>
+  </body>
+</html>

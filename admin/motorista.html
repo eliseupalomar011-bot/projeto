@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Painel do Motorista ETS2</title>
+    <link rel="stylesheet" href="./motorista.css" />
+  </head>
+  <body>
+    <header>
+      <div class="brand">
+        <span class="mark">E2</span>
+        <div>
+          <h1>Painel do Motorista</h1>
+          <span>Cliente desktop ETS2</span>
+        </div>
+      </div>
+      <span class="online">conectado</span>
+    </header>
+
+    <main>
+      <aside class="panel driver-card">
+        <span class="avatar">JS</span>
+        <h2>Joao Silva</h2>
+        <p>@joao_silva</p>
+        <div class="balance">
+          <span>Saldo</span>
+          <strong>R$ 12.500</strong>
+        </div>
+      </aside>
+
+      <section class="panel telemetry">
+        <div class="section-title">
+          <div>
+            <h2>Telemetria</h2>
+            <p>Dados recebidos do ETS2 em tempo real.</p>
+          </div>
+          <span class="pill">ativa</span>
+        </div>
+        <div class="telemetry-grid">
+          <article><span>Velocidade</span><strong>84 km/h</strong></article>
+          <article><span>Distancia</span><strong>38 km</strong></article>
+          <article><span>Trailer</span><strong>conectado</strong></article>
+          <article><span>Frete</span><strong>ativo</strong></article>
+        </div>
+      </section>
+
+      <section class="panel freights">
+        <div class="section-title">
+          <div>
+            <h2>Meus fretes</h2>
+            <p>Lista que o jogador recebe no aplicativo enquanto joga.</p>
+          </div>
+        </div>
+
+        <article class="freight active">
+          <div>
+            <strong>#104 Sao Paulo -> Curitiba</strong>
+            <p>Carga: Eletronicos | Pagamento: R$ 3.800</p>
+          </div>
+          <span class="status active">ativo</span>
+        </article>
+
+        <article class="freight">
+          <div>
+            <strong>#105 Campinas -> Santos</strong>
+            <p>Carga: Autopecas | Pagamento: R$ 2.100</p>
+          </div>
+          <button>Aceitar frete</button>
+        </article>
+
+        <article class="freight delivered">
+          <div>
+            <strong>#098 Belo Horizonte -> Rio de Janeiro</strong>
+            <p>Carga: Moveis | Pagamento: R$ 4.250</p>
+          </div>
+          <span class="status delivered">entregue</span>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>

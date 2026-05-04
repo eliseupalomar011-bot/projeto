@@ -1,0 +1,45 @@
+{
+  "name": "@ets2-freight/admin",
+  "version": "1.0.0",
+  "description": "Painel de Gestão de Frota Pro - ETS2",
+  "author": "Eliseu Palomar Logistics",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win nsis"
+  },
+  "dependencies": {
+    "axios": "^1.7.9",
+    "electron-store": "^8.2.0",
+    "socket.io-client": "^4.8.3"
+  },
+  "devDependencies": {
+    "electron": "33.2.1",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.ets2freight.admin",
+    "productName": "ETS2 Fleet Manager Pro",
+    "copyright": "Copyright © 2026 Eliseu Palomar Logistics",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "createDesktopShortcut": true,
+      "shortcutName": "ETS2 Fleet Manager",
+      "artifactName": "ETS2_Fleet_Manager_Setup_${version}.${ext}"
+    },
+    "files": [
+      "**/*",
+      "package.json"
+    ]
+  }
+}

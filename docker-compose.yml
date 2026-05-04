@@ -1,0 +1,10 @@
+services:
+  ets2-freight:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./backend/.env
+    volumes:
+      - ./backend/data:/app/backend/data
