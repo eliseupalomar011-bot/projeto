@@ -1,80 +1,48 @@
-import psycopg2
-from psycopg2.extras import RealDictCursor
-import os
+from supabase import create_client, Client
 import bcrypt
-import re
-import unicodedata
 from config import config
 
-def get_db():
-    try:
-        # Conexão com o Supabase (PostgreSQL) com SSL exigido
-        conn = psycopg2.connect(config.DATABASE_URL, cursor_factory=RealDictCursor, sslmode='require')
-        return conn
-    except Exception as e:
-        print(f"[DB CONNECTION ERROR] Erro ao conectar ao Supabase: {e}")
-        raise e
+# Singleton para o cliente Supabase
+_supabase: Client = None
+
+def get_db() -> Client:
+    global _supabase
+    if _supabase is None:
+        _supabase = create_client(config.SUPABASE_URL, config.SUPABASE_KEY)
+    return _supabase
 
 def init_db():
-    conn = None
+    """
+    No modo HTTP, não rodamos o schema.sql via código (pois exige permissões de superuser).
+    O usuário deve rodar o schema.sql manualmente no SQL Editor do Supabase.
+    Esta função apenas garante que o Admin padrão existe.
+    """
     try:
-        conn = get_db()
-        cursor = conn.cursor()
-        
-        schema_path = os.path.join(os.path.dirname(__file__), 'schema.sql')
-        with open(schema_path, 'r', encoding='utf8') as f:
-            schema = f.read()
-        
-        # No PostgreSQL, é mais seguro rodar comando por comando
-        # Separamos por ; e removemos linhas vazias/comentários
-        commands = schema.split(';')
-        for command in commands:
-            cmd = command.strip()
-            if cmd and not cmd.startswith('--'):
-                try:
-                    cursor.execute(cmd)
-                except Exception as cmd_err:
-                    # Se o erro for que a tabela já existe, podemos ignorar (IF NOT EXISTS já trata isso, mas por garantia)
-                    print(f"[DB INIT DEBUG] Comando pulado ou erro leve: {cmd_err}")
-        
-        # Migrations e Garantia de Admin
-        _ensure_default_admin(conn)
-        
-        conn.commit()
-        cursor.close()
-        print("[DB SUCCESS] Banco de dados inicializado com sucesso no Supabase.")
+        supabase = get_db()
+        _ensure_default_admin(supabase)
+        print("[DB SUCCESS] Conexão HTTP com Supabase estabelecida e Admin verificado.")
     except Exception as e:
-        if conn:
-            conn.rollback()
-        print(f"[DB INIT ERROR] Erro crítico na inicialização: {e}")
-        raise e
-    finally:
-        if conn:
-            conn.close()
+        print(f"[DB ERROR] Erro ao verificar banco via HTTP: {e}")
 
-def _username_from(value, fallback):
-    base = str(value or fallback or "usuario").split('@')[0]
-    base = unicodedata.normalize('NFD', base).encode('ascii', 'ignore').decode('utf-8')
-    base = base.lower()
-    base = re.sub(r'[^a-z0-9._-]', '', base)
-    base = base[:28]
-    return base or "usuario"
+def _ensure_default_admin(supabase: Client):
+    # Verifica se o admin já existe
+    response = supabase.table('users').select('id').or_(f"username.eq.{config.ADMIN_USERNAME},email.eq.{config.ADMIN_EMAIL}").execute()
+    
+    if len(response.data) > 0:
+        # Atualiza se necessário
+        user_id = response.data[0]['id']
+        supabase.table('users').update({
+            'username': config.ADMIN_USERNAME,
+            'email': config.ADMIN_EMAIL
+        }).eq('id', user_id).execute()
+        return
 
-def _ensure_default_admin(conn):
-    cursor = conn.cursor()
-    try:
-        cursor.execute("SELECT id FROM users WHERE username = %s OR email = %s", 
-                       (config.ADMIN_USERNAME, config.ADMIN_EMAIL))
-        existing = cursor.fetchone()
-        
-        if existing:
-            cursor.execute("UPDATE users SET username = %s, email = %s WHERE id = %s", 
-                           (config.ADMIN_USERNAME, config.ADMIN_EMAIL, existing['id']))
-        else:
-            hashed_password = bcrypt.hashpw(config.ADMIN_PASSWORD.encode('utf-8'), bcrypt.gensalt(12)).decode('utf-8')
-            cursor.execute("""
-                INSERT INTO users (name, username, email, password_hash, role) 
-                VALUES (%s, %s, %s, %s, 'admin')
-            """, (config.ADMIN_NAME, config.ADMIN_USERNAME, config.ADMIN_EMAIL, hashed_password))
-    finally:
-        cursor.close()
+    # Cria o admin se não existir
+    hashed_password = bcrypt.hashpw(config.ADMIN_PASSWORD.encode('utf-8'), bcrypt.gensalt(12)).decode('utf-8')
+    supabase.table('users').insert({
+        'name': config.ADMIN_NAME,
+        'username': config.ADMIN_USERNAME,
+        'email': config.ADMIN_EMAIL,
+        'password_hash': hashed_password,
+        'role': 'admin'
+    }).execute()
