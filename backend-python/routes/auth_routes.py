@@ -4,6 +4,7 @@ import jwt
 import datetime
 from config import config
 from database.db import get_db
+from middlewares.auth import require_auth
 
 auth_bp = Blueprint('auth', __name__)
 health_bp = Blueprint('health', __name__)
@@ -27,7 +28,7 @@ def register():
     
     # Check if user exists
     check = supabase.table('users').select('id').or_(f"username.eq.{username},email.eq.{email}").execute()
-    if len(check.data) > 0:
+    if check.count > 0:
         return jsonify({'error': 'Usuário ou email já cadastrado.'}), 400
         
     hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt(12)).decode('utf-8')
@@ -39,27 +40,25 @@ def register():
             'email': email,
             'password_hash': hashed_password,
             'role': 'user'
-        }).execute()
+        })
         
-        return jsonify({'message': 'Usuário registrado com sucesso!', 'user': res.data[0]}), 201
+        return jsonify({'message': 'Usuário registrado com sucesso!', 'user': res.data[0] if res.data else {}}), 201
     except Exception as e:
         return jsonify({'error': f'Erro ao registrar: {str(e)}'}), 500
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
     data = request.json
-    login_id = data.get('username') # can be username or email
+    login_id = data.get('username')
     password = data.get('password')
     
     if not login_id or not password:
         return jsonify({'error': 'Credenciais ausentes.'}), 400
         
     supabase = get_db()
-    
-    # Find user
     res = supabase.table('users').select('*').or_(f"username.eq.{login_id},email.eq.{login_id}").execute()
     
-    if len(res.data) == 0:
+    if res.count == 0:
         return jsonify({'error': 'Usuário não encontrado.'}), 404
         
     user = res.data[0]
@@ -82,3 +81,12 @@ def login():
         })
         
     return jsonify({'error': 'Senha incorreta.'}), 401
+
+@auth_bp.route('/me', methods=['GET'])
+@require_auth
+def get_me():
+    supabase = get_db()
+    res = supabase.table('users').select('id, name, username, role').eq('id', request.user['id']).execute()
+    if res.count == 0:
+        return jsonify({'error': 'Usuário não encontrado.'}), 404
+    return jsonify({'user': res.data[0]})

@@ -21,7 +21,7 @@ class SupabaseQuery:
         self.headers = headers
         self.params = {}
 
-    def select(self, query="*", count=None):
+    def select(self, query="*"):
         self.params["select"] = query
         return self
 
@@ -70,12 +70,9 @@ class SupabaseResponse:
             self.data = response.json()
         except:
             self.data = []
-        
-        # Simula o atributo .count do supabase-py
         self.count = len(self.data) if isinstance(self.data, list) else 0
-        
         if not (200 <= self.status_code < 300):
-            raise Exception(f"Supabase Error {self.status_code}: {self.data}")
+            print(f"[SUPABASE ERROR] {self.status_code}: {response.text}")
 
 # Singleton
 _client = None
@@ -90,20 +87,30 @@ def init_db():
     try:
         supabase = get_db()
         _ensure_default_admin(supabase)
-        print("[DB SUCCESS] Motor REST Supabase pronto!")
+        print("[DB SUCCESS] Admin verificado e atualizado.")
     except Exception as e:
-        print(f"[DB ERROR] Erro no motor REST: {e}")
+        print(f"[DB ERROR] Erro ao inicializar Admin: {e}")
 
 def _ensure_default_admin(supabase):
+    # Procura o admin pelo username ou email
     res = supabase.table('users').select('id').or_(f"username.eq.{config.ADMIN_USERNAME},email.eq.{config.ADMIN_EMAIL}").execute()
-    if res.count > 0:
-        return
     
     hashed_password = bcrypt.hashpw(config.ADMIN_PASSWORD.encode('utf-8'), bcrypt.gensalt(12)).decode('utf-8')
-    supabase.table('users').insert({
+    
+    admin_data = {
         'name': config.ADMIN_NAME,
         'username': config.ADMIN_USERNAME,
         'email': config.ADMIN_EMAIL,
         'password_hash': hashed_password,
         'role': 'admin'
-    })
+    }
+
+    if res.count > 0:
+        # Força atualização da senha e dados
+        user_id = res.data[0]['id']
+        supabase.table('users').eq('id', user_id).update(admin_data)
+        print(f"[DB INFO] Dados do Admin '{config.ADMIN_USERNAME}' atualizados.")
+    else:
+        # Cria novo
+        supabase.table('users').insert(admin_data)
+        print(f"[DB INFO] Admin '{config.ADMIN_USERNAME}' criado pela primeira vez.")
