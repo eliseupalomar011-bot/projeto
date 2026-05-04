@@ -19,7 +19,7 @@ def get_users():
 @require_admin
 def delete_user(user_id):
     supabase = get_db()
-    supabase.table('users').delete().eq('id', user_id).execute()
+    supabase.table('users').eq('id', user_id).delete()
     return jsonify({'message': 'Usuário removido.'})
 
 # --- COMPANIES MANAGEMENT ---
@@ -41,8 +41,8 @@ def add_company():
         return jsonify({'error': 'Nome é obrigatório.'}), 400
         
     supabase = get_db()
-    res = supabase.table('companies').insert({'name': name}).execute()
-    return jsonify(res.data[0]), 201
+    res = supabase.table('companies').insert({'name': name})
+    return jsonify(res.data[0] if res.data else {}), 201
 
 # --- LOGS & STATS ---
 
@@ -52,15 +52,15 @@ def add_company():
 def get_stats():
     supabase = get_db()
     
-    # Counts using Supabase
-    users_count = supabase.table('users').select('id', count='exact').execute().count
-    freights_count = supabase.table('freights').select('id', count='exact').execute().count
-    active_freights = supabase.table('freights').select('id', count='exact').eq('status', 'active').execute().count
+    # Simple counts via len() of the data
+    users = supabase.table('users').select('id').execute()
+    freights = supabase.table('freights').select('id').execute()
+    active = supabase.table('freights').select('id').eq('status', 'active').execute()
     
     return jsonify({
-        'total_users': users_count,
-        'total_freights': freights_count,
-        'active_freights': active_freights
+        'total_users': users.count,
+        'total_freights': freights.count,
+        'active_freights': active.count
     })
 
 @admin_bp.route('/telemetry/recent', methods=['GET'])
@@ -68,6 +68,6 @@ def get_stats():
 @require_admin
 def get_recent_telemetry():
     supabase = get_db()
-    # Join logic in Supabase is done via select('*, users(name)')
-    res = supabase.table('telemetry_logs').select('*, users(name, username)').order('timestamp', desc=True).limit(50).execute()
+    # Note: Join simplificado para o motor REST customizado
+    res = supabase.table('telemetry_logs').select('*').order('timestamp', desc=True).limit(50).execute()
     return jsonify(res.data)
