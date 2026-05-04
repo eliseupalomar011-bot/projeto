@@ -1,8 +1,9 @@
 import os
 from dotenv import load_dotenv
 
-# Load .env file
-load_dotenv()
+# Define o caminho absoluto para o arquivo .env
+basedir = os.path.abspath(os.path.dirname(__file__))
+load_dotenv(os.path.join(basedir, '.env'))
 
 class Config:
     PORT = int(os.getenv('PORT', 5000))
