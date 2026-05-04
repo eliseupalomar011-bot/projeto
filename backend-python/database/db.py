@@ -25,8 +25,17 @@ def init_db():
         with open(schema_path, 'r', encoding='utf8') as f:
             schema = f.read()
         
-        # Executa o schema (no psycopg2, execute pode rodar múltiplos comandos se separados por ;)
-        cursor.execute(schema)
+        # No PostgreSQL, é mais seguro rodar comando por comando
+        # Separamos por ; e removemos linhas vazias/comentários
+        commands = schema.split(';')
+        for command in commands:
+            cmd = command.strip()
+            if cmd and not cmd.startswith('--'):
+                try:
+                    cursor.execute(cmd)
+                except Exception as cmd_err:
+                    # Se o erro for que a tabela já existe, podemos ignorar (IF NOT EXISTS já trata isso, mas por garantia)
+                    print(f"[DB INIT DEBUG] Comando pulado ou erro leve: {cmd_err}")
         
         # Migrations e Garantia de Admin
         _ensure_default_admin(conn)
@@ -37,7 +46,7 @@ def init_db():
     except Exception as e:
         if conn:
             conn.rollback()
-        print(f"[DB INIT ERROR] Erro na inicialização: {e}")
+        print(f"[DB INIT ERROR] Erro crítico na inicialização: {e}")
         raise e
     finally:
         if conn:
@@ -53,18 +62,19 @@ def _username_from(value, fallback):
 
 def _ensure_default_admin(conn):
     cursor = conn.cursor()
-    cursor.execute("SELECT id FROM users WHERE username = %s OR email = %s", 
-                   (config.ADMIN_USERNAME, config.ADMIN_EMAIL))
-    existing = cursor.fetchone()
-    
-    if existing:
-        cursor.execute("UPDATE users SET username = %s, email = %s WHERE id = %s", 
-                       (config.ADMIN_USERNAME, config.ADMIN_EMAIL, existing['id']))
-        return
+    try:
+        cursor.execute("SELECT id FROM users WHERE username = %s OR email = %s", 
+                       (config.ADMIN_USERNAME, config.ADMIN_EMAIL))
+        existing = cursor.fetchone()
         
-    hashed_password = bcrypt.hashpw(config.ADMIN_PASSWORD.encode('utf-8'), bcrypt.gensalt(12)).decode('utf-8')
-    cursor.execute("""
-        INSERT INTO users (name, username, email, password_hash, role) 
-        VALUES (%s, %s, %s, %s, 'admin')
-    """, (config.ADMIN_NAME, config.ADMIN_USERNAME, config.ADMIN_EMAIL, hashed_password))
-    cursor.close()
+        if existing:
+            cursor.execute("UPDATE users SET username = %s, email = %s WHERE id = %s", 
+                           (config.ADMIN_USERNAME, config.ADMIN_EMAIL, existing['id']))
+        else:
+            hashed_password = bcrypt.hashpw(config.ADMIN_PASSWORD.encode('utf-8'), bcrypt.gensalt(12)).decode('utf-8')
+            cursor.execute("""
+                INSERT INTO users (name, username, email, password_hash, role) 
+                VALUES (%s, %s, %s, %s, 'admin')
+            """, (config.ADMIN_NAME, config.ADMIN_USERNAME, config.ADMIN_EMAIL, hashed_password))
+    finally:
+        cursor.close()

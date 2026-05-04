@@ -2,7 +2,7 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 import os
 from config import config
-from database.db import init_db
+from database.db import init_db, get_db
 from websocket.socket_hub import socketio
 
 # Import Blueprints
@@ -44,10 +44,19 @@ def create_app():
     # Root route for API confirmation
     @app.route('/')
     def api_root():
+        db_status = "offline"
+        try:
+            conn = get_db()
+            conn.close()
+            db_status = "online"
+        except:
+            db_status = "offline"
+            
         return jsonify({
             'name': 'ETS2 Freight Cloud API',
             'version': '1.1.0',
-            'status': 'online'
+            'api_status': 'online',
+            'database_status': db_status
         })
 
     # Initialize DB schema
