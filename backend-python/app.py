@@ -24,47 +24,31 @@ def create_app():
     app.register_blueprint(admin_bp, url_prefix='/api/admin')
     app.register_blueprint(telemetry_bp, url_prefix='/api/telemetry')
     
-    # Error Handler
-    @app.errorhandler(Exception)
-    def handle_exception(e):
-        print(f"Error: {e}")
-        status_code = 500
-        message = "Erro interno do servidor."
-        
-        if hasattr(e, 'code'):
-            status_code = e.code
-            
-        return jsonify({
-            'error': {
-                'message': str(e) if status_code < 500 else message,
-                'status': status_code
-            }
-        }), status_code
-
     # Root route for API confirmation
     @app.route('/')
     def api_root():
         db_status = "offline"
+        error_msg = None
         try:
-            conn = get_db()
-            conn.close()
+            supabase = get_db()
+            # Teste real: Tenta ler 1 ID da tabela users
+            supabase.table('users').select('id').limit(1).execute()
             db_status = "online"
-        except:
+        except Exception as e:
             db_status = "offline"
+            error_msg = str(e)
             
         return jsonify({
             'name': 'ETS2 Freight Cloud API',
             'version': '1.1.0',
             'api_status': 'online',
-            'database_status': db_status
+            'database_status': db_status,
+            'db_error': error_msg
         })
 
-    # Initialize DB schema
+    # Initialize DB (Garante o Admin)
     with app.app_context():
-        try:
-            init_db()
-        except Exception as db_err:
-            print(f"[DB ERROR] Erro ao inicializar Supabase: {db_err}")
+        init_db()
 
     # Initialize SocketIO
     socketio.init_app(app, cors_allowed_origins="*", async_mode='threading')
